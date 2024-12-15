@@ -1,101 +1,237 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import '@/styles/neo-brutalism.css';
+import { useState, FormEvent, useRef } from 'react'
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Loader2, Mic } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import TaskDisplay from '@/components/main/taskdisplay'
+
+export default function ChatPage() {
+  const [input, setInput] = useState('')
+  const [message, setMessage] = useState('')
+  const [response, setResponse] = useState<{ tasks: string[], description_to_solve: string[] } | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  
+  const system_prompt = `You are a superai agent gpt, you use plan and solve approach to solve a problem, you have access
+  to several other apps, you can act like getting any info from them like user's gmail, discord or calendar or location
+  when asked to do a task you make that as final goal, and then define tasks to reach the goal
+  please respond in this json format, 
+  {
+    tasks: [string],
+    description_to_solve:[string]
+  }
+  In description_to_solve you will map each task to its description on how to perform that, respond like you are doing the action,
+  also make up facts, about what you concluded after doing that. use action words like doing,performing,etc .
+  `
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    setMessage(input)
+    setInput('')
+    setIsLoading(true)
+    setSubmitted(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: [{role:'system', content : system_prompt },{ role: 'user', content: input }] }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch response')
+      }
+
+      const data = await res.json()
+      const parsedResponse = JSON.parse(data.choices[0].message.content)
+      setResponse(parsedResponse)
+    } catch (error) {
+      console.error('Error:', error)
+      setResponse(null)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      const audioChunks: Blob[] = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunks.push(event.data)
+      }
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+        await transcribeAudio(audioBlob)
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Error starting recording:', error)
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsLoading(true)
+    const formData = new FormData()
+    formData.append('file', audioBlob, 'audio.wav')
+
+    try {
+      const response = await fetch('/api/speech-to-text', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to transcribe audio')
+      }
+
+      const data = await response.json()
+      setInput(data.text)
+    } catch (error) {
+      console.error('Error transcribing audio:', error)
+      setInput('Failed to transcribe audio. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-yellow-200 p-8 flex flex-col">
+      <AnimatePresence>
+        {submitted && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] mb-8" >
+              <CardContent className="p-4">
+                <p className="font-semibold">Your prompt:</p>
+                <p>{message}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <div className="flex-grow flex items-center justify-center">
+        <AnimatePresence mode="wait">
+          {!submitted ? (
+            <motion.div
+              key="input"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ duration: 0.5 }}
+              className="w-full max-w-md"
+            >
+              <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <CardContent className="p-4">
+                  <form onSubmit={handleSubmit} className="flex gap-2">
+                    <Input
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Enter your prompt here..."
+                      className="flex-grow border-2 border-black rounded-none bg-white"
+                    />
+                    <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none" type="submit" disabled={isLoading || isRecording}>
+                      Send
+                    </Button>
+                    <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none"
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={isLoading}
+                      variant={isRecording ? "destructive" : "secondary"}
+                    >
+                      <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="response"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.5 }}
+              className="w-full max-w-2xl"
+            >
+              <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <CardContent className="p-4">
+                  {isLoading ? (
+                    <div className="flex justify-center">
+                      <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+                    </div>
+                  ) : response ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      <h2 className="text-xl font-semibold mb-4">Response:</h2>
+                      <TaskDisplay
+                        tasks={response.tasks.map((task, index) => ({
+                          task,
+                          description: response.description_to_solve[index],
+                        }))}
+                        
+                      />
+                    </motion.div>
+                  ) : (
+                    <p>Sorry, I encountered an error. Please try again.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <AnimatePresence>
+        {submitted && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ duration: 0.5 }}
+            className="mt-8 flex justify-center"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none" onClick={() => {
+              setSubmitted(false)
+              setMessage('')
+              setResponse(null)
+            }}>
+              Ask Another Question
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
-  );
+  )
 }
+
