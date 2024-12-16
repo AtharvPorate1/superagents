@@ -70,3 +70,47 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+
+body {
+  font-family: 'Space Mono', monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold uppercase;
+}
+
+.neo-brutalism-shadow {
+  box-shadow: 8px 8px 0px 0px rgba(0,0,0,1);
+  transition: all 0.2s ease-in-out;
+}
+
+.neo-brutalism-shadow:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 12px 12px 0px 0px rgba(0,0,0,1);
+}
+
+.neo-brutalism-border {
+  @apply border-4 border-black rounded-none;
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
