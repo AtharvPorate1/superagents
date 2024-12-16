@@ -34,10 +34,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-yellow-200 font-mono">
       {/* Navbar */}
-      <nav className="bg-black text-white py-4 px-6 sticky top-0 z-10">
-        <div className="container mx-auto flex justify-between items-center">
+      <nav className="bg-black  text-white py-4 px-6 sticky top-0 z-10">
+        <div className="container md:w-4/5 mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold">SUPERAGENT</Link>
-          <div className="hidden md:flex space-x-4">
+          <div className="hidden md:flex space-x-8">
             <NavLink href="#features">Features</NavLink>
             <NavLink href="#cta">Get Started</NavLink>
             <NavLink href="#contact">Contact</NavLink>
@@ -60,7 +60,7 @@ export default function LandingPage() {
       )}
 
       {/* Hero Section */}
-      <section className="container mx-auto py-20 px-4">
+      <section className="container md:w-4/5 mx-auto py-20 px-4">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 uppercase">
@@ -92,7 +92,7 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section id="features" className="bg-blue-500 py-20 px-4">
-        <div className="container mx-auto">
+        <div className="container md:w-4/5 mx-auto">
           <h2 className="text-5xl font-bold mb-12 text-center uppercase">
             What makes Superagent so super?
           </h2>
@@ -132,7 +132,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section id="cta" className="container mx-auto py-20 px-4">
+      <section id="cta" className="container md:w-4/5 mx-auto py-20 px-4">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h2 className="text-5xl font-bold mb-8 uppercase">
@@ -161,7 +161,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer id="contact" className="bg-black text-white py-12 px-4">
-        <div className="container mx-auto">
+        <div className="container md:w-4/5 mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-8 md:mb-0">
               <h3 className="text-3xl font-bold mb-4">SUPERAGENT</h3>
