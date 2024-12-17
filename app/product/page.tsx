@@ -12,13 +12,13 @@ import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const agentImages: Record<AgentType, string> = {
-  superagent: '/superagent.gif',
-  trading: '/trade.gif',
-  travel: 'https://tenor.com/view/puzzling-dot-com-picturecross-road-trip-route66-pixelart-gif-11325488705094640067',
+  superagent: 'https://placehold.co/100x100/4a90e2/ffffff?text=SA',
+  trading: 'https://placehold.co/100x100/f39c12/ffffff?text=TA',
+  travel: 'https://placehold.co/100x100/2ecc71/ffffff?text=TR',
   healthcare: 'https://placehold.co/100x100/e74c3c/ffffff?text=HC',
   nft: 'https://placehold.co/100x100/9b59b6/ffffff?text=NFT',
-  personal: '/personal.gif',
-  vision: '/vision.gif'
+  personal: 'https://placehold.co/100x100/3498db/ffffff?text=PA',
+  vision: 'https://placehold.co/100x100/8e44ad/ffffff?text=VI'
 };
 
 export default function ChatPage() {
@@ -29,6 +29,7 @@ export default function ChatPage() {
   const [showChat, setShowChat] = useState(false)
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'uploaded'>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -124,11 +125,14 @@ export default function ChatPage() {
       setSelectedImage(file);
       const url = URL.createObjectURL(file);
       setImageUrl(url);
+      setUploadStatus('uploading');
       try {
         const blobUrl = await uploadToBlob(file);
         setImageUrl(blobUrl);
+        setUploadStatus('uploaded');
       } catch (error) {
         console.error('Error uploading image to blob storage:', error);
+        setUploadStatus('idle');
         // You might want to show an error message to the user here
       }
     }
@@ -233,13 +237,7 @@ export default function ChatPage() {
           animate={{ scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-<Image
-  src={agentImages[currentAgent]}
-  alt="Agent"
-  width={200}
-  height={200}
-  className="mix-blend-multiply"
-/>
+          <Image src={agentImages[currentAgent]} alt="Agent" width={100} height={100} className="rounded-full" />
         </motion.div>
         <motion.div 
           className="mb-4 text-lg font-bold"
@@ -336,7 +334,13 @@ export default function ChatPage() {
             </form>
             {imageUrl && (
               <div className="mt-2">
-                <img src={imageUrl} alt="Selected" className="max-w-full h-auto" />
+                {uploadStatus === 'uploading' && <p>Uploading, please wait...</p>}
+                {uploadStatus === 'uploaded' && <>
+                  <p>Uploaded</p>
+
+                  <img src={imageUrl} alt="Selected" className="max-w-full h-auto" />
+                </> 
+                }
               </div>
             )}
           </CardContent>
