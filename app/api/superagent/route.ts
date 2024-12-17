@@ -11,7 +11,7 @@ import {
   reminderFunction 
 } from '@/lib/functions';
 
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = `${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`;
 
 const agentSystemPrompts: Record<AgentType, string> = {
   superagent: "You are a superagent responsible for summarizing user queries and delegating tasks to specialized agents. Your job is to understand the user's request and determine which agent is best suited to handle it.",

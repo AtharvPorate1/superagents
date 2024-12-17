@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = "AIzaSyCz7M9DYZ1nvPIDwxJ9INp2wUlIaDR_Rvk";
+const apiKey = `${process.env.NEXT_PUBLIC_GEMINI_KEY}`;
 
 if (!apiKey) {
   throw new Error("GOOGLE_API_KEY is not set in the environment variables");

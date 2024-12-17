@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = `${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`;
 
 export async function POST(req: Request) {
   const formData = await req.formData();
