@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+const OPENAI_API_KEY = `${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`;
+
 export async function POST(req: Request) {
   const formData = await req.formData();
   const file = formData.get('file') as File;
@@ -14,7 +16,7 @@ export async function POST(req: Request) {
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: (() => {
         const formData = new FormData();
