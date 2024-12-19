@@ -10,16 +10,11 @@ import { Message, AgentResponse, AgentType } from '@/types/agents'
 import { useChatStore } from '@/store/chatStore'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { agentImages } from '@/constants/agent';
+import { useWalletStore } from '@/store/walletStore'
+import { WalletInfo } from '@/components/WalletInfo'
 
-const agentImages: Record<AgentType, string> = {
-  superagent: 'https://placehold.co/100x100/4a90e2/ffffff?text=SA',
-  trading: 'https://placehold.co/100x100/f39c12/ffffff?text=TA',
-  travel: 'https://placehold.co/100x100/2ecc71/ffffff?text=TR',
-  healthcare: 'https://placehold.co/100x100/e74c3c/ffffff?text=HC',
-  nft: 'https://placehold.co/100x100/9b59b6/ffffff?text=NFT',
-  personal: 'https://placehold.co/100x100/3498db/ffffff?text=PA',
-  vision: 'https://placehold.co/100x100/8e44ad/ffffff?text=VI'
-};
+
 
 export default function ChatPage() {
   const [input, setInput] = useState('')
@@ -30,6 +25,8 @@ export default function ChatPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'uploaded'>('idle');
+  const [isOnchainMode, setIsOnchainMode] = useState(false) // Update 1: Added onchain mode state
+  const [showWalletInfo, setShowWalletInfo] = useState(false) // Update 2: Added WalletInfo visibility state
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -40,6 +37,28 @@ export default function ChatPage() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant' && lastMessage.agent === 'onchain') {
+        const content = lastMessage.content;
+        if (content.includes('Wallet created successfully')) {
+          const lines = content.split('\n');
+          const address = lines[1].split(': ')[1];
+          const type = lines[2].split(': ')[1];
+          const linkedUser = lines[3].split(': ')[1];
+          useWalletStore.getState().setWalletInfo({
+            email: linkedUser.split(':')[1],
+            address,
+            type,
+            linkedUser,
+          });
+        }
+      }
+    }
+  }, [messages]); // Update 3: Added useEffect hook for wallet info update
+
 
   const uploadToBlob = async (file: File): Promise<string> => {
     const filename = encodeURIComponent(file.name);
@@ -74,7 +93,7 @@ export default function ChatPage() {
     setCurrentAgent(selectedImage ? 'vision' : 'superagent')
 
     try {
-      const apiRoute = selectedImage ? '/api/vision' : '/api/superagent';
+      const apiRoute = isOnchainMode ? '/api/onchain-chat' : (selectedImage ? '/api/vision' : '/api/superagent'); // Update 3: Modified apiRoute to handle onchain mode
       const body = selectedImage
         ? { imageUrl }
         : { messages: [...messages, userMessage] };
@@ -192,6 +211,10 @@ export default function ChatPage() {
     }
   }
 
+  const toggleOnchainMode = () => { // Update 2: Added toggleOnchainMode function
+    setIsOnchainMode(!isOnchainMode)
+  }
+
   const renderVisionAnalysis = (content: string) => {
     try {
       console.log("Content : ", content)
@@ -251,6 +274,7 @@ export default function ChatPage() {
           }
         </motion.div>
         
+        {showWalletInfo && <WalletInfo />} {/* Update 5: Added WalletInfo component */}
         <AnimatePresence>
           {showChat && (
             <motion.div
@@ -330,6 +354,20 @@ export default function ChatPage() {
                 variant={isRecording ? "destructive" : "secondary"}
               >
                 <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+              </Button>
+              <Button // Update 4: Added onchain mode toggle button
+                type="button"
+                onClick={toggleOnchainMode}
+                className={`bg-${isOnchainMode ? 'green' : 'gray'}-500 hover:bg-${isOnchainMode ? 'green' : 'gray'}-600 text-white font-bold py-2 px-4 border-b-4 border-${isOnchainMode ? 'green' : 'gray'}-700 hover:border-${isOnchainMode ? 'green' : 'gray'}-800 rounded-none`}
+              >
+                {isOnchainMode ? 'Onchain Mode: ON' : 'Onchain Mode: OFF'}
+              </Button>
+              <Button // Update 4: Added WalletInfo toggle button
+                type="button"
+                onClick={() => setShowWalletInfo(!showWalletInfo)}
+                className={`bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 border-b-4 border-purple-700 hover:border-purple-800 rounded-none`}
+              >
+                {showWalletInfo ? 'Hide Wallet Info' : 'Show Wallet Info'}
               </Button>
             </form>
             {imageUrl && (
