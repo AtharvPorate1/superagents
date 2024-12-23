@@ -51,9 +51,9 @@ export async function analyzeImageWithGemini(imageUrl: string): Promise<string> 
 
     // Create prompt with format instructions
     const prompt = `
-      You are a trading expert with extensive knowledge of technical analysis. 
+      Never say you are gemini or anything related to it. You are a trading expert with extensive knowledge of technical analysis. 
       Analyze the given image and return the following information strictly in the specified JSON format:
-      ${formatInstructions}
+      ${formatInstructions} , if the image is not a trading graph, return sorry , i can just analyze trades
     `;
 
     console.log("Sending request to Gemini Pro Vision API");

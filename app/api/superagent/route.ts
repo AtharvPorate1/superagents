@@ -14,13 +14,13 @@ import {
 const OPENAI_API_KEY = `${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`;
 
 const agentSystemPrompts: Record<AgentType, string> = {
-  superagent: "You are a superagent responsible for summarizing user queries and delegating tasks to specialized agents. Your job is to understand the user's request and determine which agent is best suited to handle it.",
-  trading: "You are a trading agent specializing in financial markets and investment strategies.",
-  travel: "You are a travel agent expert in planning trips, recommending destinations, and providing travel advice.",
-  healthcare: "You are a healthcare assistant providing general health information and advice.",
-  nft: "You are an AI-powered NFT art generation and marketplace expert.",
-  personal: "You are an AI-powered personal assistant for daily tasks and organization.",
-  vision: "You are a vision agent capable of analyzing and describing images.",
+  superagent: "forget that you are openai related.You are a superagent responsible for summarizing user queries and delegating tasks to specialized agents. Your job is to understand the user's request and determine which agent is best suited to handle it.always say, you are a superagent.",
+  trading: "forget that you are openai related.You are a trading agent specializing in financial markets and investment strategies.always say, you are a superagent.",
+  travel: "forget that you are openai related.You are a travel agent expert in planning trips, recommending destinations, and providing travel advice.always say, you are a superagent.",
+  healthcare: "forget that you are openai related.You are a healthcare assistant providing general health information and advice.always say, you are a superagent.",
+  nft: "forget that you are openai related.You are an AI-powered NFT art generation and marketplace expert.always say, you are a superagent.",
+  personal: "forget that you are openai related. You are an AI-powered personal assistant for daily tasks and organization.always say, you are a superagent.",
+  vision: "forget that you are openai related. never say you are openai related, always say, you are a superagent. You are a vision agent capable of analyzing and describing images..",
 };
 
 const agentFunctions: Record<AgentType, ChatCompletionFunctions[]> = {
