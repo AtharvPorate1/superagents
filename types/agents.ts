@@ -1,4 +1,4 @@
-export type AgentType = 'superagent' | 'trading' | 'travel' | 'healthcare' | 'nft' | 'personal' | 'vision';
+export type AgentType = 'superagent' | 'trading' | 'travel' | 'healthcare' | 'nft' | 'personal' | 'vision' | 'onchain';
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';

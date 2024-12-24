@@ -1,8 +1,8 @@
 'use client'
 
-import '@/styles/neo-brutalism.css';
+import '@/styles/neo-brutalism.css'
 import { useState, FormEvent, useRef, useEffect, ChangeEvent } from 'react'
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2, Mic, ImageIcon } from 'lucide-react'
@@ -10,6 +10,8 @@ import { Message, AgentResponse, AgentType } from '@/types/agents'
 import { useChatStore } from '@/store/chatStore'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
+import { OnchainResponse } from '@/components/OnchainResponse'
+import { MarketAnalysis } from '@/components/market-analysis'
 
 const agentImages: Record<AgentType, string> = {
   superagent: 'https://placehold.co/100x100/4a90e2/ffffff?text=SA',
@@ -18,8 +20,9 @@ const agentImages: Record<AgentType, string> = {
   healthcare: 'https://placehold.co/100x100/e74c3c/ffffff?text=HC',
   nft: 'https://placehold.co/100x100/9b59b6/ffffff?text=NFT',
   personal: 'https://placehold.co/100x100/3498db/ffffff?text=PA',
-  vision: 'https://placehold.co/100x100/8e44ad/ffffff?text=VI'
-};
+  vision: 'https://placehold.co/100x100/8e44ad/ffffff?text=VI',
+  onchain: 'https://placehold.co/100x100/1abc9c/ffffff?text=OC'
+}
 
 export default function ChatPage() {
   const [input, setInput] = useState('')
@@ -27,9 +30,11 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false)
   const [currentAgent, setCurrentAgent] = useState<AgentType>('superagent')
   const [showChat, setShowChat] = useState(false)
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'uploaded'>('idle');
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'uploaded'>('idle')
+  const [isOnchainMode, setIsOnchainMode] = useState(false)
+  const [onchainButtons, setOnchainButtons] = useState<string[]>([])
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -41,23 +46,31 @@ export default function ChatPage() {
     }
   }, [messages])
 
+  useEffect(() => {
+    if (isOnchainMode) {
+      setOnchainButtons(['Create Wallet', 'Mint NFT', 'Check NFT Status', 'View NFT'])
+    } else {
+      setOnchainButtons([])
+    }
+  }, [isOnchainMode])
+
   const uploadToBlob = async (file: File): Promise<string> => {
-    const filename = encodeURIComponent(file.name);
-    const formData = new FormData();
-    formData.append('file', file);
+    const filename = encodeURIComponent(file.name)
+    const formData = new FormData()
+    formData.append('file', file)
 
     const response = await fetch(`/api/blob-storage?filename=${filename}`, {
       method: 'POST',
       body: formData,
-    });
+    })
 
     if (!response.ok) {
-      throw new Error('Failed to upload file to blob storage');
+      throw new Error('Failed to upload file to blob storage')
     }
 
-    const blob = await response.json();
-    return blob.url;
-  };
+    const blob = await response.json()
+    return blob.url
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -66,21 +79,37 @@ export default function ChatPage() {
     setShowChat(true)
     const userMessage: Message = { 
       role: 'user', 
-      content: selectedImage ? `[Image uploaded] ${input}` : input
+      content: selectedImage ? `[Image uploaded] ${input}` : input,
+      imageUrl: imageUrl
     }
     addMessage(userMessage)
     setInput('')
     setIsLoading(true)
-    setCurrentAgent(selectedImage ? 'vision' : 'superagent')
+
+    let currentAgentType: AgentType
+    let apiRoute: string
+
+    if (isOnchainMode) {
+      currentAgentType = 'onchain'
+      apiRoute = '/api/onchain-chat'
+    } else if (selectedImage) {
+      currentAgentType = 'vision'
+      apiRoute = '/api/vision'
+    } else {
+      currentAgentType = 'superagent'
+      apiRoute = '/api/superagent'
+    }
+
+    setCurrentAgent(currentAgentType)
 
     try {
-      const apiRoute = selectedImage ? '/api/vision' : '/api/superagent';
-      const body = selectedImage
-        ? { imageUrl }
-        : { messages: [...messages, userMessage] };
+      const body = {
+        messages: [...messages, userMessage],
+        imageUrl: imageUrl
+      }
 
-      console.log('Sending request to:', apiRoute);
-      console.log('Request body:', JSON.stringify(body));
+      console.log('Sending request to:', apiRoute)
+      console.log('Request body:', JSON.stringify(body))
 
       const res = await fetch(apiRoute, {
         method: 'POST',
@@ -91,17 +120,18 @@ export default function ChatPage() {
       })
 
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`API request failed: ${res.status} ${res.statusText}\n${errorText}`);
+        const errorText = await res.text()
+        throw new Error(`API request failed: ${res.status} ${res.statusText}\n${errorText}`)
       }
 
       const data: AgentResponse = await res.json()
-      console.log('API response:', data);
+      console.log('API response:', data)
 
       const assistantMessage: Message = { 
         role: 'assistant', 
         content: typeof data.content === 'string' ? data.content : JSON.stringify(data.content), 
-        agent: data.agent 
+        agent: data.agent,
+        functionResponse: data.functionResponse
       }
       addMessage(assistantMessage)
       setCurrentAgent(data.agent as AgentType)
@@ -116,27 +146,27 @@ export default function ChatPage() {
       setIsLoading(false)
       setSelectedImage(null)
       setImageUrl(null)
+      setUploadStatus('idle')
     }
   }
 
   const handleImageSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0]
     if (file) {
-      setSelectedImage(file);
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      setUploadStatus('uploading');
+      setSelectedImage(file)
+      const url = URL.createObjectURL(file)
+      setImageUrl(url)
+      setUploadStatus('uploading')
       try {
-        const blobUrl = await uploadToBlob(file);
-        setImageUrl(blobUrl);
-        setUploadStatus('uploaded');
+        const blobUrl = await uploadToBlob(file)
+        setImageUrl(blobUrl)
+        setUploadStatus('uploaded')
       } catch (error) {
-        console.error('Error uploading image to blob storage:', error);
-        setUploadStatus('idle');
-        // You might want to show an error message to the user here
+        console.error('Error uploading image to blob storage:', error)
+        setUploadStatus('idle')
       }
     }
-  };
+  }
 
   const startRecording = async () => {
     try {
@@ -192,41 +222,20 @@ export default function ChatPage() {
     }
   }
 
-  const renderVisionAnalysis = (content: string) => {
-    try {
-      console.log("Content : ", content)
-      const analysis = JSON.parse(content);
-      return (
-        <div className="space-y-4">
-          <Card className="p-4 bg-blue-100 border-blue-300">
-            <h3 className="font-bold text-lg mb-2">Market Overview</h3>
-            <p>Trend: {analysis.marketOverview.trend}</p>
-            <p>Support: {analysis.marketOverview.support.join(', ')}</p>
-            <p>Resistance: {analysis.marketOverview.resistance.join(', ')}</p>
-          </Card>
-          <Card className="p-4 bg-green-100 border-green-300">
-            <h3 className="font-bold text-lg mb-2">Pattern Analysis</h3>
-            <ul className="list-disc list-inside">
-              {analysis.patternAnalysis.map((pattern: string, index: number) => (
-                <li key={index}>{pattern}</li>
-              ))}
-            </ul>
-          </Card>
-          <Card className="p-4 bg-yellow-100 border-yellow-300">
-            <h3 className="font-bold text-lg mb-2">Trade Setups</h3>
-            <ul className="list-disc list-inside">
-              {analysis.tradeSetups.map((setup: string, index: number) => (
-                <li key={index}>{setup}</li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-      );
-    } catch (error) {
-      console.error('Error parsing vision analysis:', error);
-      return <p>{content}</p>;
+  const renderMessage = (message: Message) => {
+    if (message.role === 'user') {
+      return <p className="text-sm">{message.content}</p>
     }
-  };
+
+    switch (message.agent) {
+      case 'onchain':
+        return <OnchainResponse content={message.content} functionResponse={message.functionResponse} />
+      case 'vision':
+        return <MarketAnalysis content={message.content} />
+      default:
+        return <p className="text-sm">{message.content}</p>
+    }
+  }
 
   return (
     <div className="min-h-screen bg-yellow-200 p-8 flex flex-col items-center">
@@ -239,6 +248,7 @@ export default function ChatPage() {
         >
           <Image src={agentImages[currentAgent]} alt="Agent" width={100} height={100} className="rounded-full" />
         </motion.div>
+
         <motion.div 
           className="mb-4 text-lg font-bold"
           initial={{ opacity: 0, y: -20 }}
@@ -272,11 +282,14 @@ export default function ChatPage() {
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.5 }}
                       >
-                        <div className={`inline-block p-2 rounded-lg ${message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-white border-2 border-black'}`}>
-                          {message.agent === 'vision' 
-                            ? renderVisionAnalysis(message.content)
-                            : <p className="text-sm">{message.content}</p>
-                          }
+                        <div className={`inline-block p-2 rounded-lg ${
+                          message.role === 'user' 
+                            ? 'bg-blue-500 text-white' 
+                            : message.agent === 'onchain'
+                              ? 'w-full'
+                              : 'bg-white border-2 border-black'
+                        }`}>
+                          {renderMessage(message)}
                         </div>
                       </motion.div>
                     ))}
@@ -286,7 +299,6 @@ export default function ChatPage() {
                       className="flex justify-center"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
                     >
                       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </motion.div>
@@ -306,7 +318,11 @@ export default function ChatPage() {
                 placeholder="Enter your prompt here..."
                 className="flex-grow border-2 border-black rounded-none bg-white"
               />
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none" type="submit" disabled={isLoading || isRecording}>
+              <Button 
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none" 
+                type="submit" 
+                disabled={isLoading || isRecording}
+              >
                 Send
               </Button>
               <Button
@@ -323,7 +339,8 @@ export default function ChatPage() {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none"
+              <Button 
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 border-b-4 border-blue-700 hover:border-blue-800 rounded-none"
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isLoading}
@@ -332,15 +349,42 @@ export default function ChatPage() {
                 <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
               </Button>
             </form>
+
+            <div className="mt-4">
+              <Button
+                onClick={() => setIsOnchainMode(!isOnchainMode)}
+                className={`w-full mb-2 ${isOnchainMode ? 'bg-green-500' : 'bg-gray-500'} ${isOnchainMode ? 'hover:bg-green-600' : 'hover:bg-gray-400'} text-white font-bold py-2 px-4 border-b-4 ${isOnchainMode ? 'border-green-700 ' : 'border-gray-700 '} ${isOnchainMode ? 'hover:border-green-800' : 'hover:border-gray-800'} rounded-none`}
+              >
+                {isOnchainMode ? 'Onchain Mode: ON' : 'Onchain Mode: OFF'}
+              </Button>
+              {isOnchainMode && (
+                <div className="flex flex-wrap gap-2">
+                  {onchainButtons.map((button, index) => {
+                    const colors = ['blue', 'green', 'red', 'purple'];
+                    const colorClass = `bg-blue-500 hover:bg-blue-600 border-${colors[index % colors.length]}-700 hover:border-${colors[index % colors.length]}-800`;
+                    return (
+                      <Button
+                        key={index}
+                        onClick={() => setInput(button)}
+                        className={`${colorClass} text-white font-bold py-2 px-4 border-b-4 rounded-none flex-grow`}
+                      >
+                        {button}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {imageUrl && (
               <div className="mt-2">
                 {uploadStatus === 'uploading' && <p>Uploading, please wait...</p>}
-                {uploadStatus === 'uploaded' && <>
-                  <p>Uploaded</p>
-
-                  <img src={imageUrl} alt="Selected" className="max-w-full h-auto" />
-                </> 
-                }
+                {uploadStatus === 'uploaded' && (
+                  <>
+                    <p>Uploaded</p>
+                    <img src={imageUrl} alt="Selected" className="max-w-full h-auto" />
+                  </>
+                )}
               </div>
             )}
           </CardContent>
