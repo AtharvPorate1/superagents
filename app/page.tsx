@@ -36,7 +36,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="bg-black  text-white py-4 px-6 sticky top-0 z-10">
         <div className="container md:w-4/5 mx-auto flex justify-between items-center">
-          <Link href="/" className="text-2xl font-bold">SUPERAGENT</Link>
+          <Link href="/" className="text-2xl font-bold">SUPERAGENTS</Link>
           <div className="hidden md:flex space-x-8">
             <NavLink href="#features">Features</NavLink>
             <NavLink href="#cta">Get Started</NavLink>
@@ -64,7 +64,7 @@ export default function LandingPage() {
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 uppercase">
-              Superagent: <br /> Your Supercharged <br /> AI Assistant
+              Superagents: <br /> Your Supercharged <br /> AI Assistant
             </h1>
             <p className="text-2xl mb-8">
               Imagine Jarvis, but cooler and with a better sense of humor!
